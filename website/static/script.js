@@ -201,8 +201,10 @@ map.on("load", () => {
                         method: "POST",
                         body: formData
                     });
-                    
-                    const data = await response.json();
+                    console.log("Status:", response.status);
+                    const text = await response.text();
+                    console.log("Response:", text);
+                    const data = JSON.parse(text);
 
                     if (data.error) {
                         resultsContainer.innerHTML = `<span style="color: #ff0844;">Error: ${data.error}</span>`;

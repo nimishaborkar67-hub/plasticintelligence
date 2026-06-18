@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Plastic Intelligence</title>
+    <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.0/maptiler-sdk.css" rel="stylesheet">
+    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.0/maptiler-sdk.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark:#060913;
+            --apple-glass:rgba(26,32,53,.65);
+            --apple-border:rgba(255,255,255,.08);
+            --text-main:#f5f5f7;
+            --text-muted:#86868b;
+            --font-text: -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing:border-box; }
+        html, body {
+            margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+            font-family:var(--font-text);
+            background: radial-gradient(circle at top left, rgba(0,242,254,.08), transparent 40%),
+                        radial-gradient(circle at bottom right, rgba(255,8,68,.08), transparent 40%),
+                        var(--bg-dark);
+            color:var(--text-main);
+            -webkit-font-smoothing:antialiased;
+        }
+        #map { width:100%; height:100vh; }
+        
+        /* SEARCH */
+        .search-container { position:absolute; top:24px; left:24px; z-index:9999; width:340px; }
+        .search-box-wrapper {
+            display:flex; align-items:center; background:var(--apple-glass);
+            border:1px solid var(--apple-border); border-radius:16px; padding:8px 14px;
+            backdrop-filter:blur(25px) saturate(180%); box-shadow:0 8px 30px rgba(0,0,0,.35);
+        }
+        .search-input { width:100%; background:none; border:none; outline:none; color:white; font-size:14px; }
+        .search-input::placeholder { color:var(--text-muted); }
+
+        /* SIDEBAR */
+        #sidebar {
+            position:absolute; top:0; right:0; width:430px; height:100vh;
+            overflow-y:auto; padding:28px; z-index:999; background:var(--apple-glass);
+            border-left:1px solid var(--apple-border);
+            backdrop-filter:blur(35px) saturate(200%); box-shadow:-15px 0 50px rgba(0,0,0,.55);
+        }
+        h1 {
+            margin-top:0; margin-bottom:24px; font-size:34px; font-weight:700; letter-spacing:-1px;
+            background: linear-gradient(90deg, white, #d7d7d7);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
+
+        /* CARDS */
+        .card {
+            background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+            border-radius:20px; padding:18px; margin-bottom:16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.25); transition:.25s;
+        }
+        .card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,.12); }
+        .card h3 { margin-top:0; margin-bottom:12px; font-size:20px; font-weight:600; color:#00f2fe; }
+        
+        .engine-list { margin-top:10px; font-size: 14px;}
+        .engine-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid #ff0844;}
+        
+        .metricValue { font-size:36px; font-weight:700; letter-spacing:-1px; color:white; }
+        #location, #coords, #metrics, #analysis, #ranking, #recommendation, #leakage, #trendInsight { line-height:1.7; font-size: 15px; }
+
+        /* SCALE / INDEX CSS */
+        #scaleContainer { position:relative; margin-top:15px; margin-bottom: 5px; }
+        #gradientBar {
+            height: 18px; border-radius: 999px;
+            background: linear-gradient(to right, #6a00ff 0%, #0000ff 25%, #00ff00 50%, #ffff00 75%, #ff0000 100%);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        #indicator {
+            position: absolute; top: -6px; width: 6px; height: 30px; left: 0%;
+            border-radius: 10px; background: white;
+            box-shadow: 0 0 8px rgba(0,0,0,0.8), 0 0 15px rgba(255,255,255,0.5);
+            transition: left 0.5s cubic-bezier(0.25, 1, 0.5, 1);  z-index: 10;
+        }
+        #scaleLabels { display:flex; justify-content:space-between; margin-top:8px; font-size:11px; font-weight: bold; color:var(--text-muted); }
+
+        /* CHART */
+        canvas { background: rgba(255,255,255,.95); border-radius:16px; padding:12px; width: 100%;}
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width:8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius:20px; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="search-container">
+    <div class="search-box-wrapper">
+        <input class="search-input" placeholder="Search locations...">
+    </div>
+</div>
+
+<div id="sidebar">
+    <h1>Plastic Intelligence</h1>
+
+    <div class="card" style="border: 1px solid #ff0844; background: rgba(255,8,68,0.05);">
+        <h3 style="color: #ff0844;">Optimal Deployment Engine</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: -8px;">Top Global Priorities for Interception</p>
+        <div id="engine-results" class="engine-list">Loading logic model...</div>
+    </div>
+
+    <div class="card">
+        <h3>Pollution Severity Index</h3>
+        <div id="scaleContainer">
+            <div id="gradientBar"></div>
+            <div id="indicator"></div> 
+        </div>
+        <div id="scaleLabels">
+            <span style="color: #8c8cff;">Cool Tones<br>(Very Low)</span>
+            <span>Low</span>
+            <span style="color: #00ff00;">Moderate</span>
+            <span>High</span>
+            <span style="color: #ff4c4c; text-align: right;">Warm Tones<br>(Extreme)</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Selected Target</h3>
+        <div id="location">Click a hotspot on the map...</div>
+        <div id="coords" style="color: var(--text-muted); font-size: 12px; margin-top: 5px;"></div>
+    </div>
+
+    <div class="card">
+        <h3>Interceptor Recommendation</h3>
+        <div id="recommendation">Waiting for selection...</div>
+    </div>
+
+    <div class="card">
+        <h3>Estimated Ocean Leakage</h3>
+        <div id="leakage">Waiting for selection...</div>
+    </div>
+
+    <div class="card">
+        <h3>Monthly Leakage Pattern</h3>
+        <canvas id="monthlyChart"></canvas>
+    </div>
+
+    <div id="yolo-validation-section"></div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}?v=4"></script>
+
+</body>
+</html>
